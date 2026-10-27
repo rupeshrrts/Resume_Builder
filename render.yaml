@@ -1,0 +1,50 @@
+# Render Blueprint (render.com → New → Blueprint): the website and the API as two Docker
+# services. The database is Supabase (see DEPLOY.md). Values marked `sync: false` are asked
+# for when the Blueprint is created; never put secrets in this file.
+services:
+  - type: web
+    name: resume-builder-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      # My own secret (letters only, 12+) for resetting a forgotten admin password. See README → Admin dashboard.
+      - key: ADMIN_SETUP_CODE
+        sync: false
+      # AI is optional: fill in at least one of these (leave the rest empty).
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: PROXY_SECRET
+        generateValue: true
+
+  - type: web
+    name: resume-builder-web
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: resume-builder-api
+          property: hostport
+      - key: PROXY_SECRET
+        fromService:
+          type: web
+          name: resume-builder-api
+          envVarKey: PROXY_SECRET

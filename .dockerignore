@@ -1,0 +1,11 @@
+**/node_modules
+**/.next
+**/.data
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+.claude
+.git
+backend/tests
+coverage

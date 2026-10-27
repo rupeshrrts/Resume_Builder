@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+  --color-ink: #0f172a;
+  --font-sans: var(--font-body), "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --font-display: var(--font-heading), var(--font-body), "Segoe UI", system-ui, sans-serif;
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px -4px rgb(15 23 42 / 0.08);
+  --shadow-lift: 0 2px 4px rgb(15 23 42 / 0.05), 0 12px 32px -8px rgb(79 70 229 / 0.25);
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.5s linear infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 0% 50%;
+    }
+    to {
+      background-position: 200% 50%;
+    }
+  }
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(1200px 500px at 85% -10%, rgb(224 231 255 / 0.7), transparent 60%),
+    radial-gradient(900px 400px at -10% 0%, rgb(237 233 254 / 0.6), transparent 60%),
+    #f8fafc;
+  background-attachment: fixed;
+  color: #0f172a;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@utility field {
+  @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-[inset_0_1px_1px_rgb(15_23_42/0.03)] transition placeholder:text-slate-400 hover:border-slate-300 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-100 disabled:bg-slate-50 disabled:text-slate-400;
+}
+
+@utility label {
+  @apply mb-1 block text-xs font-semibold text-slate-600;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-gradient-to-b from-brand-500 to-brand-700 text-white shadow-[0_1px_0_rgb(255_255_255/0.2)_inset,0_4px_12px_-2px_rgb(79_70_229/0.45)] hover:from-brand-600 hover:to-brand-800 hover:shadow-[0_1px_0_rgb(255_255_255/0.2)_inset,0_8px_20px_-4px_rgb(79_70_229/0.55)];
+}
+@utility btn-secondary {
+  @apply btn border border-slate-200 bg-white text-slate-800 shadow-[0_1px_2px_rgb(15_23_42/0.05)] hover:border-slate-300 hover:bg-slate-50;
+}
+@utility btn-ghost {
+  @apply btn font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+}
+@utility btn-danger {
+  @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50;
+}
+@utility card {
+  @apply rounded-2xl border border-slate-200/80 bg-white shadow-[var(--shadow-soft)];
+}
+@utility card-hover {
+  @apply transition duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-[var(--shadow-lift)];
+}
+@utility gradient-text {
+  @apply bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-500 bg-clip-text text-transparent;
+  background-size: 200% auto;
+}
+/* Faint grid behind the landing hero, fading out towards the edges. */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(99 102 241 / 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(99 102 241 / 0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse at 50% 30%, black 35%, transparent 75%);
+}
+@utility eyebrow {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-white/80 px-3 py-1 text-xs font-semibold text-brand-700 shadow-sm backdrop-blur;
+}
+
+/* Live preview approximates the PDF typography. */
+.resume-preview {
+  font-family: var(--rp-font);
+  font-size: calc(var(--rp-size) * 1pt);
+  line-height: var(--rp-lh);
+  color: #111;
+}
+.resume-preview a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Thin, unobtrusive scrollbars in panels. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+dialog[open] {
+  animation: var(--animate-fade-up);
+}
