@@ -3,6 +3,8 @@
 FROM node:22-slim AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1 NEXT_OUTPUT=standalone
+# Lets the build use swap on small (1 GB) servers instead of stopping with "heap out of memory".
+ENV NODE_OPTIONS=--max-old-space-size=2048
 
 COPY package.json package-lock.json ./
 COPY shared/package.json shared/
@@ -12,6 +14,9 @@ RUN npm ci --workspace frontend --workspace shared
 
 COPY shared ./shared
 COPY frontend ./frontend
+# Pages rendered at build time (link previews, sitemap) bake these in; empty = the defaults.
+ARG SITE_URL="" GOOGLE_SITE_VERIFICATION=""
+ENV SITE_URL=$SITE_URL GOOGLE_SITE_VERIFICATION=$GOOGLE_SITE_VERIFICATION
 RUN npm run build -w frontend
 
 FROM node:22-slim

@@ -1,0 +1,55 @@
+# The whole app on one server: Caddy (HTTPS on your domain) → website → API → Supabase.
+# Used by deploy/remote-deploy.sh; settings come from deploy/.env (see deploy/app.env.example).
+# Only Caddy is reachable from the internet; the website and the API talk over Docker's private network.
+name: resume-builder
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    # Everything in .env (DATABASE_URL, AI keys, ADMIN_SETUP_CODE, PROXY_SECRET…) reaches the API.
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-https://${DOMAIN},https://www.${DOMAIN}}
+
+  web:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+      args:
+        SITE_URL: https://${DOMAIN}
+        GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://api:4000
+      PROXY_SECRET: ${PROXY_SECRET}
+      SITE_URL: https://${DOMAIN}
+      GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
+    depends_on:
+      api:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # HTTPS certificates; kept across deploys so they aren't requested again.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:

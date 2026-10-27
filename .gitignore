@@ -10,6 +10,12 @@ data/
 .env
 .env.local
 .env.*.local
+# Server private keys must never be committed.
+*.key
+*.pem
+id_rsa
+id_ed25519
+*.zip
 next-env.d.ts
 *.tsbuildinfo
 coverage/

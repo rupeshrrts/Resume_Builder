@@ -1,0 +1,14 @@
+# Caddy gets and renews free HTTPS certificates (Let's Encrypt) for DOMAIN by itself,
+# as soon as the domain's DNS points at this server.
+
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000 {
+		# The website's /api proxy passes this on to the API for per-visitor rate limits.
+		header_up X-Real-IP {remote_host}
+	}
+}

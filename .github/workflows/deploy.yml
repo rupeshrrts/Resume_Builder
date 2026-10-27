@@ -1,0 +1,59 @@
+# Every push to main (or master) copies the code to your server and restarts the app there.
+# Setup: deploy/README.md. Needs three repository secrets: SERVER_IP, SSH_PRIVATE_KEY and APP_ENV.
+name: Deploy to server
+
+on:
+  push:
+    branches: [main, master]
+  # "Run workflow" button on the Actions tab, e.g. after changing a secret.
+  workflow_dispatch:
+
+# One deploy at a time; a newer push waits for the running one instead of cutting it off.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # The first build on the 1 GB free server is slow.
+    timeout-minutes: 60
+    env:
+      # The Azure server's login user (made by deploy/azure-create-server.sh).
+      SERVER: azureuser@${{ secrets.SERVER_IP }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connect to the server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+        run: |
+          if [ -z "$SERVER_IP" ] || [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "::error::Add the SERVER_IP and SSH_PRIVATE_KEY secrets first (see deploy/README.md)."
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_server
+          chmod 600 ~/.ssh/id_server
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
+          printf 'Host server\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/id_server\n  ServerAliveInterval 30\n' \
+            "$SERVER_IP" "${SERVER%@*}" > ~/.ssh/config
+          ssh server 'command -v rsync >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq rsync)'
+
+      - name: Copy the code
+        # deploy/.env (your settings) stays on the server and is never overwritten from here.
+        run: rsync -az --delete --exclude .git --exclude deploy/.env ./ server:resume-builder/
+
+      - name: Write the settings
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          if [ -z "$APP_ENV" ]; then
+            echo "::error::Add the APP_ENV secret first (template: deploy/app.env.example)."
+            exit 1
+          fi
+          printf '%s\n' "$APP_ENV" | tr -d '\r' | ssh server 'umask 077 && cat > resume-builder/deploy/.env'
+
+      - name: Build and restart
+        run: ssh server 'bash resume-builder/deploy/remote-deploy.sh'

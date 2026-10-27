@@ -1,5 +1,7 @@
 # Deploying Resume Builder with Supabase
 
+**Free, always-on option (used for the live site):** one Azure free-tier server in Central India that updates itself on every `git push`. See [deploy/README.md](deploy/README.md).
+
 ## Quick path: Vercel (website) + Render (API) + Supabase (database)
 
 | Folder | What it is | Where it runs |
