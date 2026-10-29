@@ -23,23 +23,23 @@ export default function OpenGraphImage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 18,
-              background: "linear-gradient(135deg, #6366f1, #a855f7)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              padding: "0 16px",
-              gap: 6,
-            }}
-          >
-            <div style={{ height: 6, width: 30, borderRadius: 3, background: "#fff" }} />
-            <div style={{ height: 5, width: 22, borderRadius: 3, background: "rgba(255,255,255,0.75)" }} />
-            <div style={{ height: 5, width: 26, borderRadius: 3, background: "rgba(255,255,255,0.75)" }} />
-          </div>
+          {/* Same drawing as LogoMark in components/Logo.tsx. */}
+          <svg width="72" height="72" viewBox="0 0 32 32">
+            <defs>
+              <linearGradient id="logo-tile" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stopColor="#8b5cf6" />
+                <stop offset="1" stopColor="#6d28d9" />
+              </linearGradient>
+            </defs>
+            <rect width="32" height="32" rx="7.5" fill="url(#logo-tile)" />
+            <path d="M10.6 7h5.9l3.5 3.5v11.9a1.6 1.6 0 0 1-1.6 1.6h-7.8A1.6 1.6 0 0 1 9 22.4V8.6A1.6 1.6 0 0 1 10.6 7z" fill="#fff" />
+            <path d="M16.5 7v2.3a1.2 1.2 0 0 0 1.2 1.2H20z" fill="#ddd6fe" />
+            <rect x="11.3" y="12.3" width="5" height="1.6" rx=".8" fill="#7c3aed" />
+            <rect x="11.3" y="15.4" width="6.4" height="1.3" rx=".65" fill="#ddd6fe" />
+            <rect x="11.3" y="18.2" width="4.6" height="1.3" rx=".65" fill="#ddd6fe" />
+            <path d="M24 6c.4 2.6 1 3.2 3.6 3.6-2.6.4-3.2 1-3.6 3.6-.4-2.6-1-3.2-3.6-3.6C23 9.2 23.6 8.6 24 6z" fill="#fde68a" />
+            <path d="M25.8 20.6c.2 1.4.6 1.8 2 2-1.4.2-1.8.6-2 2-.2-1.4-.6-1.8-2-2 1.4-.2 1.8-.6 2-2z" fill="#fde68a" />
+          </svg>
           <div style={{ fontSize: 34, fontWeight: 700 }}>{SITE_NAME}</div>
         </div>
 

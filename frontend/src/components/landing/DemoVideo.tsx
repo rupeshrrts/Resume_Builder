@@ -121,7 +121,7 @@ export function DemoVideo() {
                 <div className="mt-1 space-y-2.5">
                   <Field label="Full name" value={typed(NAME, t, s1 + 300, 1400)} active={t < s1 + 1900} />
                   <Field label="Headline" value={typed(ROLE, t, s1 + 1900, 2200)} active={t >= s1 + 1900} />
-                  <Field label="Email" value="rupesh@example.com" />
+                  <Field label="Email" value="rupesh.kumar@example.com" />
                 </div>
               ) : null}
               {scene === 1 ? (
@@ -172,7 +172,7 @@ export function DemoVideo() {
               <p className="text-center text-[11px] font-extrabold uppercase tracking-wide text-slate-900 sm:text-[15px]">{name || <span className="text-slate-300">YOUR NAME</span>}</p>
               <p className="mt-0.5 min-h-[1.35em] text-center font-bold text-slate-800">{role}</p>
               <p className="text-center text-slate-500">
-                Siwan, Bihar | <span className="text-[#0563c1] underline">LinkedIn</span> | <span className="text-[#0563c1] underline">GitHub</span>
+                rupesh.kumar@example.com | +91 98765 43210 | Bengaluru, Karnataka | <span className="text-[#0563c1] underline">LinkedIn</span> | <span className="text-[#0563c1] underline">GitHub</span>
               </p>
               <Section title="Summary" shown={t >= s1 + 4200}>
                 Full Stack Developer with 2+ years building enterprise web apps and Generative AI features.
@@ -182,7 +182,7 @@ export function DemoVideo() {
               </Section>
               <Section title="Experience" shown={t >= s2}>
                 <p className="flex justify-between">
-                  <span><b>Software Engineer</b> — Godrej Koerber</span>
+                  <span><b>Software Engineer</b> — TechNova Solutions</span>
                   <i className="text-slate-500">2025 – Present</i>
                 </p>
                 <p className="flex gap-1">

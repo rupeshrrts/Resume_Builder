@@ -96,22 +96,29 @@ export function ReadyBanner({ resumeId, flush, onClose }: { resumeId: string; fl
   const { busy, error, run } = useDownload(resumeId, flush);
   return (
     <div className="mx-auto mt-4 max-w-[1500px] px-4">
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-        <PartyPopper className="h-6 w-6 shrink-0 text-emerald-600" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <p className="font-bold text-emerald-900">Your resume is ready.</p>
-          <p className="text-sm text-emerald-800">Download it now, or keep editing. The Download button stays at the top right.</p>
+      <div className="relative rounded-2xl border border-emerald-200 bg-emerald-50 p-4 pr-12">
+        {/* Phones: message on top, buttons underneath. Wider screens: one row. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <PartyPopper className="h-6 w-6 shrink-0 text-emerald-600" aria-hidden />
+            <div className="min-w-0">
+              <p className="font-bold text-emerald-900">Your resume is ready.</p>
+              <p className="text-sm text-emerald-800">Download it now, or keep editing. The Download button stays at the top right.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 sm:shrink-0">
+            <button className="btn-primary flex-1 sm:flex-none" disabled={!!busy} onClick={() => run("pdf")}>
+              <Download className="h-4 w-4" aria-hidden /> {busy === "pdf" ? "Preparing…" : "Download PDF"}
+            </button>
+            <button className="btn-secondary flex-1 sm:flex-none" disabled={!!busy} onClick={() => run("docx")}>
+              {busy === "docx" ? "Preparing…" : "Download Word"}
+            </button>
+          </div>
         </div>
-        <button className="btn-primary" disabled={!!busy} onClick={() => run("pdf")}>
-          <Download className="h-4 w-4" aria-hidden /> {busy === "pdf" ? "Preparing…" : "Download PDF"}
-        </button>
-        <button className="btn-secondary" disabled={!!busy} onClick={() => run("docx")}>
-          {busy === "docx" ? "Preparing…" : "Download Word"}
-        </button>
-        <button className="btn-ghost h-8 w-8 p-0" aria-label="Close" onClick={onClose}>
+        <button className="btn-ghost absolute right-2 top-2 h-8 w-8 p-0" aria-label="Close" onClick={onClose}>
           <X className="h-4 w-4" />
         </button>
-        {error ? <div className="w-full"><Notice tone="error">{error}</Notice></div> : null}
+        {error ? <div className="mt-3"><Notice tone="error">{error}</Notice></div> : null}
       </div>
     </div>
   );

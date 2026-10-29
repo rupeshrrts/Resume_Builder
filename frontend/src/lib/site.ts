@@ -12,7 +12,10 @@ export const SITE_DESCRIPTION =
   "Create a free, ATS-friendly resume in minutes. Step-by-step builder, clean templates, an ATS score that explains every point, and the exact PDF or Word file you preview. Made for freshers and experienced professionals.";
 
 export const SITE_KEYWORDS = [
+  "resume builder",
   "free resume builder",
+  "resume maker",
+  "CV builder free",
   "ATS resume builder",
   "ATS friendly resume",
   "ATS resume checker",

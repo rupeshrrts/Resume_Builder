@@ -30,6 +30,8 @@ The deploy script installs Docker, opens the server's own firewall and adds swap
 
 **Other scripts (paste into Cloud Shell when needed):**
 
+- [`azure-github-secrets.sh`](azure-github-secrets.sh): prints everything GitHub needs in one go: `SERVER_IP`, a free web address to use as `DOMAIN`, and a fresh `SSH_PRIVATE_KEY`.
+
 - [`azure-new-key.sh`](azure-new-key.sh): makes a fresh private key for GitHub, if the old one is lost or was shared. Put the new key in the `SSH_PRIVATE_KEY` secret (step 4).
 - [`azure-free-address.sh`](azure-free-address.sh): gives the server a free web address like `reesume-app.centralindia.cloudapp.azure.com`. Use it as `DOMAIN` while your GoDaddy domain isn't set up yet.
 

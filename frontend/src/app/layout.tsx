@@ -45,8 +45,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/75 backdrop-blur-xl">
           <div className="mx-auto flex h-14 max-w-[1500px] items-center justify-between gap-2 px-4">
-            <Link href={user ? "/dashboard" : "/"} aria-label="Resume Builder home">
-              <Logo />
+            <Link href={user ? "/dashboard" : "/"} aria-label={`${SITE_NAME} home`}>
+              <Logo compact={!!user} />
             </Link>
             <NavLinks signedIn={!!user} isAdmin={!!user?.isAdmin} />
           </div>

@@ -19,7 +19,7 @@ const Credentials = z.object({ email: z.string().trim().toLowerCase().max(200), 
 /** Sign-up details: name and mobile number besides email and password. */
 const Registration = Credentials.extend({
   fullName: z.string().trim().min(2, "Enter your full name.").max(120),
-  // Digits with an optional leading +, spaces or dashes: "+91 70339 42649", "070339-42649".
+  // Digits with an optional leading +, spaces or dashes: "+91 98765 43210", "098765-43210".
   phone: z
     .string()
     .trim()

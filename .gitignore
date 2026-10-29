@@ -16,6 +16,7 @@ data/
 id_rsa
 id_ed25519
 *.zip
+secrets-for-github.txt
 next-env.d.ts
 *.tsbuildinfo
 coverage/

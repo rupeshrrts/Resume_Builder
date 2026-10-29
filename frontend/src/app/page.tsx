@@ -75,7 +75,7 @@ export default async function Home() {
         </div>
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-12 lg:grid-cols-[0.95fr_1.1fr] lg:pt-20">
           <div className="animate-fade-up">
-            <span className="eyebrow"><Sparkles className="h-3.5 w-3.5" aria-hidden /> Professional, ATS-friendly resumes</span>
+            <span className="eyebrow"><Sparkles className="h-3.5 w-3.5" aria-hidden /> Free ATS resume builder for India</span>
             <h1 className="mt-5 text-4xl font-extrabold leading-[1.06] text-slate-900 sm:text-5xl lg:text-[3.5rem]">
               Build a resume that <span className="gradient-text animate-shimmer">gets read</span>, in minutes.
             </h1>
