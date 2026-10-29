@@ -34,8 +34,20 @@ jobs:
             exit 1
           fi
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_server
+          # Rebuild the key file from its text, so a copy from Cloud Shell with missing BEGIN/END lines,
+          # extra spaces or broken line breaks still works.
+          body=$(printf '%s' "$SSH_PRIVATE_KEY" | tr -d '\r' | sed 's/-----[A-Z ]*-----//g' | tr -d ' \t\n')
+          if printf '%s' "$body" | base64 -d 2>/dev/null | head -c 14 | grep -q '^openssh-key-v1'; then
+            type="OPENSSH PRIVATE KEY"
+          else
+            type="RSA PRIVATE KEY"
+          fi
+          { echo "-----BEGIN $type-----"; printf '%s' "$body" | fold -w 64; echo; echo "-----END $type-----"; } > ~/.ssh/id_server
           chmod 600 ~/.ssh/id_server
+          if ! ssh-keygen -y -f ~/.ssh/id_server >/dev/null; then
+            echo "::error::SSH_PRIVATE_KEY is not a valid private key. Run deploy/azure-new-key.sh in Cloud Shell and paste the whole key again."
+            exit 1
+          fi
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
           printf 'Host server\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/id_server\n  ServerAliveInterval 30\n' \
             "$SERVER_IP" "${SERVER%@*}" > ~/.ssh/config
