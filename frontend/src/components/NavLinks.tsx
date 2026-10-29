@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Briefcase, ChartColumn, CloudUpload, LayoutDashboard, LogOut, MessagesSquare, UserRound } from "lucide-react";
 import { api } from "@/lib/api-client";
+import { UPLOAD_AND_AI_ANALYSIS } from "@/lib/features";
 
-const LINKS = [
+const LINKS: { href: string; label: string; icon: typeof LayoutDashboard; soon?: boolean }[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/applications", label: "Applications", icon: Briefcase },
   { href: "/interview", label: "Interview prep", icon: MessagesSquare },
-  { href: "/import", label: "Import", icon: CloudUpload },
+  UPLOAD_AND_AI_ANALYSIS ? { href: "/import", label: "Import", icon: CloudUpload } : { href: "/import", label: "AI analysis", icon: CloudUpload, soon: true },
   { href: "/account", label: "Account", icon: UserRound },
 ];
 
@@ -27,7 +28,7 @@ export function NavLinks({ signedIn, isAdmin = false }: { signedIn: boolean; isA
     );
   return (
     <nav className="flex items-center gap-0.5" aria-label="Main">
-      {(isAdmin ? [...LINKS, { href: "/admin", label: "Admin", icon: ChartColumn }] : LINKS).map(({ href, label, icon: Icon }) => {
+      {(isAdmin ? [...LINKS, { href: "/admin", label: "Admin", icon: ChartColumn }] : LINKS).map(({ href, label, icon: Icon, soon }) => {
         const active = path === href || (href === "/dashboard" && path.startsWith("/resumes"));
         return (
           <Link
@@ -39,6 +40,7 @@ export function NavLinks({ signedIn, isAdmin = false }: { signedIn: boolean; isA
             <Icon className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">{label}</span>
             <span className="sr-only sm:hidden">{label}</span>
+            {soon ? <span className="hidden rounded-full bg-violet-100 px-1.5 py-px text-[10px] font-semibold text-violet-700 sm:inline">Soon</span> : null}
           </Link>
         );
       })}

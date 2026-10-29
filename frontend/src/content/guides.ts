@@ -183,12 +183,12 @@ export const GUIDES: Guide[] = [
       {
         heading: "Try it free",
         paragraphs: [
-          "Our builder shows an ATS readability score and a resume score as you type, explains every point, and lists the highest-impact fixes first. You can upload your existing PDF or Word resume, or build a new one step by step, then download the exact PDF you previewed.",
+          "Our builder shows an ATS readability score and a resume score as you type, explains every point, and lists the highest-impact fixes first. Build your resume step by step, then download the exact PDF you previewed. Uploading your existing PDF or Word resume for an AI analysis is coming soon.",
         ],
       },
     ],
     faq: [
-      { q: "Is the ATS checker really free?", a: "Yes. Creating an account, building or uploading a resume, checking scores and downloading PDF or Word files are free." },
+      { q: "Is the ATS checker really free?", a: "Yes. Creating an account, building a resume, checking scores and downloading PDF or Word files are free." },
       { q: "Will a 100 ATS score get me shortlisted?", a: "No tool can promise that: people and different systems make the decisions. A high score means your resume is clear and readable, which removes avoidable problems." },
       { q: "Is my uploaded resume stored?", a: "Uploaded files are read in memory to extract the text and are not stored. Only the sections you choose to save are kept, and you can delete them any time." },
     ],

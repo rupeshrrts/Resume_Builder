@@ -12,7 +12,7 @@ import { MatchDemo } from "@/components/landing/MatchDemo";
 import { TemplateShowcase } from "@/components/landing/TemplateShowcase";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { LogoMark } from "@/components/Logo";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
+import { DEVELOPER, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 import { GUIDES } from "@/content/guides";
 
 const FEATURES = [
@@ -244,7 +244,7 @@ export default async function Home() {
           <div className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl" aria-hidden />
           <div className="pointer-events-none absolute -bottom-16 right-0 h-64 w-64 rounded-full bg-fuchsia-400/20 blur-3xl" aria-hidden />
           <h2 className="relative text-3xl font-extrabold sm:text-4xl">Your next application deserves a clear resume.</h2>
-          <p className="relative mx-auto mt-3 max-w-xl text-brand-100">Start from your existing file or a blank page. It takes a few minutes.</p>
+          <p className="relative mx-auto mt-3 max-w-xl text-brand-100">Answer a few simple questions or start from a blank page. It takes a few minutes.</p>
           <Link href="/register" className="btn relative mt-7 bg-white px-6 py-3 text-base text-brand-700 shadow-lg hover:bg-brand-50">
             Get started free <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
@@ -259,6 +259,17 @@ export default async function Home() {
           </nav>
           <span>Scores are guidance, not a prediction of any employer&apos;s decision.</span>
         </div>
+        <p className="border-t border-slate-200/70 py-3 text-center text-xs text-slate-500">
+          Developed by{" "}
+          {DEVELOPER.linkedin ? (
+            <a href={DEVELOPER.linkedin} target="_blank" rel="noopener noreferrer author" className="inline-flex items-center gap-1 font-semibold text-slate-700 hover:text-brand-700" aria-label={`${DEVELOPER.name} on LinkedIn (opens in a new tab)`}>
+              {DEVELOPER.name}
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-[#0A66C2]" aria-hidden><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0Z" /></svg>
+            </a>
+          ) : (
+            <span className="font-semibold text-slate-700">{DEVELOPER.name}</span>
+          )}
+        </p>
       </footer>
     </div>
   );

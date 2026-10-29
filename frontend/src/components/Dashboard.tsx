@@ -10,6 +10,7 @@ import { PRESETS, TEMPLATES } from "@resume/shared/render/templates";
 
 
 import { api, ApiError } from "@/lib/api-client";
+import { UPLOAD_AND_AI_ANALYSIS } from "@/lib/features";
 import { Badge, Modal, Notice, ScoreRing } from "./ui";
 import { JobForm } from "./JobForm";
 import { ReviewCard } from "./ReviewCard";
@@ -88,7 +89,7 @@ export function Dashboard({
   const first = masters[0] ?? resumes[0];
   const firstHref = first ? `/resumes/${first.id}` : "/wizard";
   const steps = [
-    { label: "Create your resume", hint: "Use the guide, or import your old PDF or Word file.", href: "/wizard", done: resumes.length > 0 },
+    { label: "Create your resume", hint: UPLOAD_AND_AI_ANALYSIS ? "Use the guide, or import your old PDF or Word file." : "Answer simple questions in the step-by-step guide.", href: "/wizard", done: resumes.length > 0 },
     { label: "Reach an ATS score of 75+", hint: "The editor's checks show exactly what to fix.", href: firstHref, done: Object.values(scores).some((s) => s.ats >= 75) },
     { label: "Save a job you want", hint: "Paste its description to see how well you match.", href: "/applications", done: jobs.length > 0 },
     { label: "Tailor a copy for that job", hint: "Your master resume stays untouched.", href: firstHref, done: tailored.length > 0 },
@@ -196,7 +197,11 @@ export function Dashboard({
         {/* With no resumes yet, the empty-state card below offers the same actions. */}
         {resumes.length ? <div className="flex flex-wrap gap-2">
           <Link href="/wizard" className="btn-primary" title="Answer a few simple questions, step by step"><Sparkles className="h-4 w-4" aria-hidden /> Create new resume</Link>
-          <Link href="/import" className="btn-secondary" title="Upload a PDF or Word resume to edit it here"><CloudUpload className="h-4 w-4" aria-hidden /> Upload resume</Link>
+          {UPLOAD_AND_AI_ANALYSIS ? (
+            <Link href="/import" className="btn-secondary" title="Upload a PDF or Word resume to edit it here"><CloudUpload className="h-4 w-4" aria-hidden /> Upload resume</Link>
+          ) : (
+            <span className="btn-secondary cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon"><CloudUpload className="h-4 w-4" aria-hidden /> Upload &amp; analyse with AI <Badge tone="violet">Soon</Badge></span>
+          )}
           <button className="btn-secondary" title="Save a job description to check your match" onClick={() => setAddingJob(true)}><Briefcase className="h-4 w-4" aria-hidden /> Add a job</button>
         </div> : null}
       </div>
@@ -228,20 +233,21 @@ export function Dashboard({
                 <p className="mx-auto mt-1 max-w-md text-center text-sm text-slate-600">Pick one. You can change everything later.</p>
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
                   {[
-                    { href: "/wizard", icon: Sparkles, title: "Create step by step", text: "Answer simple questions. We turn them into a clean, ATS-friendly resume.", best: true },
-                    { href: "/import", icon: CloudUpload, title: "Upload my resume", text: "Have one already? Upload the PDF or Word file and improve it here.", best: false },
-                    { href: null, icon: Plus, title: "Start from blank", text: "For experienced users: fill in each section yourself in the editor.", best: false },
-                  ].map(({ href, icon: Icon, title, text, best }) => {
+                    { href: "/wizard", icon: Sparkles, title: "Create step by step", text: "Answer simple questions. We turn them into a clean, ATS-friendly resume.", best: true, soon: false },
+                    { href: "/import", icon: CloudUpload, title: "Upload & analyse with AI", text: "Have one already? Upload the PDF or Word file. AI checks it and shows what to fix.", best: false, soon: !UPLOAD_AND_AI_ANALYSIS },
+                    { href: null, icon: Plus, title: "Start from blank", text: "For experienced users: fill in each section yourself in the editor.", best: false, soon: false },
+                  ].map(({ href, icon: Icon, title, text, best, soon }) => {
                     const body = (
                       <>
                         <span className="flex items-center justify-between">
                           <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${best ? "bg-gradient-to-br from-brand-500 to-violet-500 text-white" : "bg-slate-100 text-slate-600"}`}><Icon className="h-5 w-5" aria-hidden /></span>
-                          {best ? <Badge tone="blue">Recommended</Badge> : null}
+                          {best ? <Badge tone="blue">Recommended</Badge> : soon ? <Badge tone="violet">Coming soon</Badge> : null}
                         </span>
                         <span className="mt-3 block font-semibold text-slate-900">{title}</span>
                         <span className="mt-1 block text-xs leading-relaxed text-slate-600">{text}</span>
                       </>
                     );
+                    if (soon) return <div key={title} aria-disabled="true" className="block h-full cursor-not-allowed rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-left opacity-75">{body}</div>;
                     const cls = `block h-full rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${best ? "border-brand-300 bg-brand-50/50 ring-1 ring-brand-100" : "border-slate-200 bg-white hover:border-slate-300"}`;
                     return href ? (
                       <Link key={title} href={href} className={cls}>{body}</Link>

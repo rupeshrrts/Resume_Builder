@@ -6,10 +6,11 @@ import { CloudUpload, Download, FileSearch, WandSparkles } from "lucide-react";
 const STEPS = [
   {
     icon: CloudUpload,
-    title: "Import or start fresh",
-    body: "Upload a PDF or Word resume and get editable sections in seconds, with a report on layout features that trip up tracking systems.",
+    title: "Start fresh, or upload (coming soon)",
+    body: "Answer simple questions to build a clean, ATS-friendly resume. Coming soon: upload your PDF or Word resume and get an AI analysis with a report on layout features that trip up tracking systems.",
     visual: (
       <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Coming soon</p>
         <div className="flex items-center gap-3 rounded-xl border-2 border-dashed border-brand-300 bg-brand-50/60 p-4">
           <CloudUpload className="h-6 w-6 text-brand-600" aria-hidden />
           <div className="text-sm"><p className="font-semibold">resume_2026.pdf</p><p className="text-xs text-slate-500">1 page · text-based</p></div>

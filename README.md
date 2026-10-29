@@ -1,5 +1,7 @@
 # Resume Builder
 
+**Live at [reesume.in](https://reesume.in)** · Developed by [Rupesh Kumar](https://www.linkedin.com/in/rupesh-kumar-508b1820a/)
+
 I built this because most resume builders either look fancy and fail ATS checks, or hide the real PDF behind a "preview". This one keeps it simple: you fill in your details step by step, see your ATS score, and download exactly the PDF you were looking at.
 
 It never makes things up. The scores come from fixed rules, and the AI only rewrites what you already wrote.
@@ -7,7 +9,6 @@ It never makes things up. The scores come from fixed rules, and the AI only rewr
 ## What it does
 
 - Step-by-step builder: goal, contact, summary, skills, experience, projects, education, certifications, achievements, design
-- Upload an old PDF or Word resume and keep editing it here
 - 9 clean, single-column templates that ATS software can read
 - The preview is the real PDF, not an approximation
 - Download as PDF, Word, plain text, Markdown or JSON
@@ -19,6 +20,33 @@ It never makes things up. The scores come from fixed rules, and the AI only rewr
 - Forgot password works with a recovery code given at sign-up, no email service needed
 - My own admin dashboard: users, visits, where visitors come from, downloads and earnings
 - Resume guides (ATS format, freshers, software engineers) to help people find the site on Google
+- **Coming soon:** upload an existing PDF or Word resume and get an AI analysis. It's switched off for now; set `UPLOAD_AND_AI_ANALYSIS` to `true` in [`frontend/src/lib/features.ts`](frontend/src/lib/features.ts) to bring it back.
+
+## How it runs
+
+```
+git push → GitHub Actions → copies the code to the Azure server → rebuilds → site updated
+Visitor → reesume.in (HTTPS by Caddy) → website (Next.js) → API (Express) → Supabase PostgreSQL
+```
+
+- **Server:** one Azure free-tier Ubuntu server in Central India, running the website, the API and Caddy with Docker Compose (`deploy/`).
+- **Database:** Supabase PostgreSQL in Mumbai.
+- **Domain:** `reesume.in` at GoDaddy, with an A record pointing at the server. Caddy gets and renews the HTTPS certificate by itself.
+- **Updates:** every push to `main` deploys automatically ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)), in about 5–10 minutes.
+
+The full setup, from creating the server to the GitHub secrets, is in **[deploy/README.md](deploy/README.md)**. Every setting is listed in [DEPLOY.md](DEPLOY.md).
+
+### Settings (GitHub secrets)
+
+Repository → **Settings → Secrets and variables → Actions**:
+
+| Secret | What it holds |
+|---|---|
+| `SERVER_IP` | The Azure server's IP address |
+| `SSH_PRIVATE_KEY` | The server's private key (make a new one with `deploy/azure-new-key.sh`) |
+| `APP_ENV` | One setting per line: `DOMAIN`, `DATABASE_URL`, `ADMIN_SETUP_CODE`, `GEMINI_API_KEY` (template: [`deploy/app.env.example`](deploy/app.env.example)) |
+
+To change a setting: update `APP_ENV` (paste **all** the lines again, since GitHub replaces the whole secret), then **Actions → Deploy to server → Run workflow**.
 
 ## Admin dashboard
 
@@ -26,53 +54,35 @@ Only my account can open the admin dashboard.
 
 ### How I log in as admin
 
-1. Open **`https://<my-site>/admin/login`** (or click **Admin login** under the normal sign-in form).
+1. Open **`https://reesume.in/admin/login`** (or click **Admin login** under the normal sign-in form).
 2. Enter `rupeshsinghsuntech@gmail.com` and my password.
 3. Click **Sign in to admin**. The dashboard opens. No code is needed.
 
 The admin email is set with `ADMIN_EMAILS` (default: mine). Emails are unique, so once my account exists nobody else can register it. I must not delete that account. On a brand-new database, I sign up with the admin email right after deploying.
 
-### Do this once, right after deploying: set my own admin code
+### My admin code
 
-This code is what I use to reset the admin password if I ever forget it. If I set it myself, I always know it and never have to search logs.
-
-1. Go to **dashboard.render.com** and sign in.
-2. Click the **API service** (the backend, e.g. `resume-builder-api`).
-3. Click **Environment** in the left menu.
-4. Click **Add Environment Variable**:
-   - **Key:** `ADMIN_SETUP_CODE`
-   - **Value:** my own secret, letters only, at least 12 (for example `MYSECRETADMINCODE`, but choose a different one)
-5. Click **Save Changes**. Render restarts the API by itself.
-6. Write the code down somewhere safe (phone notes).
-
-For my laptop, I add the same line to `backend/.env`:
-
-```
-ADMIN_SETUP_CODE=MYSECRETADMINCODE
-```
+`ADMIN_SETUP_CODE` in the `APP_ENV` secret is what I use to reset the admin password if I ever forget it: my own secret, letters only, at least 12. I keep a copy somewhere safe (phone notes). For my laptop, the same line goes in `backend/.env`.
 
 ### I forgot the admin password: how to get back in
 
-1. Open **`https://<my-site>/admin/login`** and click **Forgot password?**. The page **Site owner: reset password** opens.
+1. Open **`https://reesume.in/admin/login`** and click **Forgot password?**. The page **Site owner: reset password** opens.
 2. Fill in:
    - **Email:** `rupeshsinghsuntech@gmail.com`
-   - **Setup code from the server log:** my `ADMIN_SETUP_CODE` from the step above
+   - **Setup code:** my `ADMIN_SETUP_CODE`
    - **New password:** at least 10 characters, with letters and a number or symbol
 3. Click **Set new password**. I'm signed in as admin with the new password.
 4. Save the recovery code it shows (see below).
 
-**I didn't set `ADMIN_SETUP_CODE`? Find the code in Render's logs instead:**
+**Lost the setup code too?** Open [shell.azure.com](https://shell.azure.com) (Bash) and paste this. It prints the code from the server's log:
 
-1. **dashboard.render.com → the API service → Logs**.
-2. Type `admin_setup_code` in the log search box.
-3. In the line `"event":"admin_setup_code","code":"ABCD-EFGH-JKLM"`, the code is **ABCD-EFGH-JKLM**. Use the newest line; a new code is made every time the API restarts.
-4. No line found? Click **Manual Deploy → Restart service**, wait about a minute, and search again.
-
-(On my laptop, the same line is in the terminal window running `npm run dev`.)
+```bash
+az vm run-command invoke -g resume-builder -n $(az vm list -g resume-builder --query "[0].name" -o tsv) --command-id RunShellScript --scripts "cd /home/azureuser/resume-builder/deploy && docker compose logs api | grep admin_setup_code | tail -1" --query "value[0].message" -o tsv
+```
 
 **Or use my recovery code** (if I made one): while signed in, **Account → Recovery code → Create code** makes one. When I forget the password: **`/admin/login` → Forgot password? → Use it instead**, then email + recovery code + new password.
 
-**Why this is safe:** only the admin email can use these resets; the setup code exists only in my Render settings or logs, which only I can open; and attempts are limited (5 resets and 8 wrong passwords per 15 minutes).
+**Why this is safe:** only the admin email can use these resets; the setup code exists only in my GitHub secret and the server log, which only I can open; and attempts are limited (5 resets and 8 wrong passwords per 15 minutes).
 
 ### What the dashboard shows
 
@@ -84,15 +94,19 @@ It shows registered users, visits and unique visitors per day, top pages, where 
 - **Backend:** Node.js, Express, TypeScript
 - **Database:** PostgreSQL (Supabase online, PGlite on my laptop)
 - **PDF and Word:** react-pdf and docx
+- **Hosting:** Azure (Ubuntu), Docker Compose, Caddy, GitHub Actions
 - **Tests:** Vitest
 
 ## Folders
 
 ```
-frontend/   the website (goes on Vercel)
-backend/    the API (goes on Render)
-database/   schema.sql, the whole database in one file
+frontend/   the website (Next.js)
+backend/    the API (Express)
 shared/     code both sides use: templates, scoring, data types
+database/   schema.sql, the whole database in one file
+deploy/     server setup: Docker Compose, Caddy, deploy script, Azure Cloud Shell scripts
+.github/    the auto-deploy workflow
+brand/      logo files (PNG sizes, SVG, favicon)
 ```
 
 ## Run it on your machine
@@ -117,11 +131,11 @@ npm run dev
 
 Then open http://localhost:3000 and create an account. (On Mac or Linux use `cp` instead of `copy`.)
 
-If the project sits inside OneDrive or Dropbox, set `PGLITE_DIR` in `backend/.env` to a folder outside it, otherwise syncing can damage the local database.
+If the project sits inside OneDrive or Dropbox, set `PGLITE_DIR` in `backend/.env` to a folder outside it, otherwise syncing can damage the local database. Leave `DATABASE_URL` out of `backend/.env` for local testing, so test accounts never land in the live database.
 
 ## AI (optional)
 
-Everything works without AI. To turn it on, paste a key into `backend/.env` and restart:
+Everything works without AI. To turn it on locally, paste a key into `backend/.env` and restart (on the live site it goes in the `APP_ENV` secret):
 
 ```
 GEMINI_API_KEY=your-key-here
@@ -129,27 +143,21 @@ GEMINI_API_KEY=your-key-here
 
 I use Google Gemini because it has a free plan: go to aistudio.google.com, sign in with Google and click **Get API key**. The app also accepts `GROQ_API_KEY` (free plan), `NVIDIA_API_KEY` (free for development), `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` (both paid). If you add more than one, it falls back to the next when one is busy.
 
-Never commit your keys. `.env` files are already in `.gitignore`.
+## Keeping secrets out of GitHub
 
-## Deploy
+The repository is public. Never upload:
 
-I host it on three free services:
+- `backend/.env` and `frontend/.env.local` (database password, API keys)
+- any private key file (`*.key`, `id_rsa`, `id_ed25519`)
 
-1. **Supabase** for the database. Create a project and copy the *Session pooler* connection string (Connect → Method: Session pooler). Supabase's certificate is already in `backend/certs`, so nothing else is needed. The tables are created automatically when the API starts, or you can paste `database/schema.sql` into the SQL Editor.
-2. **Render** for the API. New Web Service from this repo, using `backend/Dockerfile`. Add `NODE_ENV=production`, `DATABASE_URL`, `PROXY_SECRET` (any long random text), `FRONTEND_ORIGIN` (the Vercel URL) and your AI key.
-3. **Vercel** for the website. Import the repo, set **Root Directory** to `frontend`, and add `BACKEND_URL` (the Render URL) and the same `PROXY_SECRET`.
-4. **Admin:** on Render, add `ADMIN_SETUP_CODE` with my own secret code (see [Admin dashboard](#admin-dashboard)), then sign in at `/admin/login`.
-
-More detail is in [DEPLOY.md](DEPLOY.md).
+`.gitignore` blocks them for `git push`, but **not** for uploads on the GitHub website or inside a zip. Make the zip without them, or move them out of the folder first. If a key or password was ever shared, make a new one (Gemini: aistudio.google.com/apikey; Supabase: Project Settings → Database → Reset database password; server key: `deploy/azure-new-key.sh`) and update `APP_ENV`.
 
 ## Getting found on Google
 
-The site has a sitemap (`/sitemap.xml`), a `robots.txt` that keeps private pages out of search, page titles and descriptions, a link preview image for WhatsApp and LinkedIn, and structured data for the homepage and FAQ. The address defaults to `https://freeatsresume.in`; set `SITE_URL` on Vercel if it's different.
+The site has a sitemap (`/sitemap.xml`), a `robots.txt` that keeps private pages out of search, page titles and descriptions, a link preview image for WhatsApp and LinkedIn, and structured data for the homepage and FAQ. The address comes from `DOMAIN` in `APP_ENV`.
 
-After going live:
-
-1. Open [Google Search Console](https://search.google.com/search-console), add the domain and verify it (DNS record, or set `GOOGLE_SITE_VERIFICATION` on Vercel to the code from the "HTML tag" option).
-2. Under **Sitemaps**, submit `sitemap.xml`.
+1. Open [Google Search Console](https://search.google.com/search-console), add the domain `reesume.in` and verify it (GoDaddy one-click, or a TXT record in GoDaddy DNS).
+2. Under **Sitemaps**, submit `sitemap.xml`. Under **URL inspection**, request indexing for `https://reesume.in/`.
 3. Share the link on LinkedIn, college groups and forums. Links from other sites help ranking more than anything else.
 
 ## Commands
@@ -174,5 +182,6 @@ Passwords are hashed, every user only sees their own data, and uploaded files ar
 ## Known limits
 
 - The PDF supports English and the ₹ sign, but not Hindi or other scripts yet (the Word file does).
-- Very unusual resume layouts may need a few fixes after upload.
-- On Render's free plan the API sleeps when idle, so the first visit can take about a minute.
+- Upload and AI analysis of an existing resume is switched off until it works reliably (see "Coming soon" above).
+- The free server has 1 GB of memory, so a deploy takes about 5–10 minutes (longer the first time).
+- The Azure free account lasts 12 months (until about October 2027). After that the server is charged unless it's moved or upgraded.

@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   // The repository root, so builds include the shared workspace (monorepo).
   outputFileTracingRoot: root,
   turbopack: { root },
-  // A self-contained server for Docker images (NEXT_OUTPUT=standalone); hosts like Vercel use the default.
+  // A self-contained server for Docker images (NEXT_OUTPUT=standalone); `npm run start` uses the default.
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   // /api/* is proxied to the backend by src/app/api/[...path]/route.ts (runtime BACKEND_URL).
   async headers() {

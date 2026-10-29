@@ -1,10 +1,13 @@
 /**
  * Public address and wording used for search engines and link previews.
- * SITE_URL (set on Vercel) overrides the address, e.g. while testing on a .vercel.app link.
+ * SITE_URL (set from DOMAIN by deploy/docker-compose.yml) overrides the address.
  */
-export const SITE_URL = (process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://freeatsresume.in").replace(/\/+$/, "");
+export const SITE_URL = (process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://reesume.in").replace(/\/+$/, "");
 
 export const SITE_NAME = "Free ATS Resume Builder";
+
+/** Credit shown in the footer. With an empty `linkedin`, the name is shown without a link. */
+export const DEVELOPER = { name: "Rupesh Kumar", linkedin: "https://www.linkedin.com/in/rupesh-kumar-508b1820a/" };
 
 export const SITE_TITLE = "Free ATS Resume Builder – Make an ATS-Friendly Resume Online";
 

@@ -116,7 +116,7 @@ export function InterviewPrep({ resumes, jobs, aiAvailable }: { resumes: ResumeS
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
         <MessagesSquare className="mx-auto h-10 w-10 text-brand-500" aria-hidden />
         <h1 className="mt-3 text-2xl font-extrabold">Interview prep</h1>
-        <p className="mt-2 text-slate-600">Create or import a resume first. Questions and stories are built from what your resume says.</p>
+        <p className="mt-2 text-slate-600">Create a resume first. Questions and stories are built from what your resume says.</p>
       </div>
     );
 

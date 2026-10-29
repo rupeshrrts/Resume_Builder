@@ -5,7 +5,7 @@ import { log } from "@/log";
  * Transactional email (verification and password-reset links) over HTTPS, so it also works on hosts
  * that block SMTP ports, such as Render's free plan. Set one of:
  *   RESEND_API_KEY  (resend.com)   or   BREVO_API_KEY  (brevo.com)
- * plus MAIL_FROM, e.g. "Free ATS Resume <no-reply@freeatsresume.in>". Without a key, outside
+ * plus MAIL_FROM, e.g. "Free ATS Resume <no-reply@reesume.in>". Without a key, outside
  * production the message is written to the server log instead, so the flows can be tried locally.
  */
 
