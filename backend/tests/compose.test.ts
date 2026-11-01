@@ -61,6 +61,18 @@ describe("composeSummary", () => {
     r.projects = [];
     expect(composeSummary(r, { targetRole: "Backend Engineer", stage: "experienced" })).toContain("Improved settlement report generation");
   });
+  it("doesn't quote a bullet that has no number", () => {
+    const r = sampleResume();
+    r.experience = [{ ...r.experience[0], bullets: [{ id: "x", text: "Built this in the first month.", origin: "user" }] }];
+    r.projects = [];
+    expect(composeSummary(r, { targetRole: "Software Engineer", stage: "student" })).not.toContain("Built this");
+  });
+  it("doesn't quote a bullet from a role the resume leaves out (no title or company)", () => {
+    const r = sampleResume();
+    r.experience = [{ ...r.experience[0], title: "", company: "", bullets: [{ id: "x", text: "Cut report time from 40 to 6 minutes.", origin: "user" }] }];
+    r.projects = [];
+    expect(composeSummary(r, { targetRole: "Software Engineer", stage: "student" })).not.toContain("report time");
+  });
   it("handles students without experience", () => {
     const r = sampleResume();
     r.experience = [];

@@ -157,12 +157,16 @@ export function composeSummary(r: ResumeData, opts: { targetRole: string; stage:
   return parts.join(" ");
 }
 
-/** The resume's most evidence-rich bullet (has a number, longest), used as a summary highlight. */
+/**
+ * The resume's most evidence-rich bullet (has a number, longest), used as a summary highlight.
+ * A bullet without a number is not a highlight, only a repeat of the experience section, so none is used then.
+ * Only entries the resume actually shows count (same rule as render/model.ts), so a bullet typed into a role
+ * that has no title or company yet never turns up on its own in the summary.
+ */
 function bestBullet(r: ResumeData): string | null {
-  const all = [...r.experience.flatMap((e) => e.bullets), ...r.projects.flatMap((p) => p.bullets)].map((b) => stripBold(b.text).trim()).filter(Boolean);
-  const withNum = all.filter((t) => /\d/.test(t));
-  const pool = withNum.length ? withNum : all;
-  const best = pool.sort((a, b) => b.length - a.length).find((t) => t.split(" ").length <= 28) ?? null;
+  const shown = [...r.experience.filter((e) => e.title.trim() || e.company.trim()).flatMap((e) => e.bullets), ...r.projects.filter((p) => p.name.trim()).flatMap((p) => p.bullets)];
+  const withNum = shown.map((b) => stripBold(b.text).trim()).filter((t) => /\d/.test(t));
+  const best = withNum.sort((a, b) => b.length - a.length).find((t) => t.split(" ").length <= 28) ?? null;
   return best ? toPastTense(best) : null;
 }
 

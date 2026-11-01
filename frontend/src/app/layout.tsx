@@ -43,10 +43,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:shadow">
           Skip to content
         </a>
-        <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/75 backdrop-blur-xl">
-          <div className="mx-auto flex h-14 max-w-[1500px] items-center justify-between gap-2 px-4">
+        <header className="sticky top-0 z-30 overflow-clip bg-gradient-to-r from-brand-700 via-brand-600 to-violet-600 shadow-[0_8px_24px_-12px_rgb(79_70_229/0.6)] before:pointer-events-none before:absolute before:-right-16 before:-top-24 before:h-56 before:w-56 before:rounded-full before:bg-white/10 before:blur-2xl after:pointer-events-none after:absolute after:-bottom-24 after:left-1/3 after:h-40 after:w-72 after:rounded-full after:bg-fuchsia-400/20 after:blur-3xl">
+          <div className="relative mx-auto flex h-16 max-w-[1500px] items-center justify-between gap-2 px-4">
             <Link href={user ? "/dashboard" : "/"} aria-label={`${SITE_NAME} home`}>
-              <Logo compact={!!user} />
+              <Logo compact={!!user} onDark />
             </Link>
             <NavLinks signedIn={!!user} isAdmin={!!user?.isAdmin} />
           </div>

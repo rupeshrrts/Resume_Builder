@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Award, Briefcase, Check, Eye, FolderKanban, GraduationCap, Palette, Plus, Rocket, Sparkles, Target, Trash, Trophy, UserRound, Wrench, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Award, Briefcase, Check, Eye, FolderKanban, GraduationCap, Minus, Palette, Plus, Rocket, Sparkles, Target, Trash, Trophy, UserRound, Wrench, X } from "lucide-react";
 import {
   PROFILE_LINKS,
   ResumeData,
@@ -49,12 +49,11 @@ interface Draft {
 
 const STORAGE_KEY = "rb-wizard-draft-v1";
 
-const STAGES: { id: CareerStage; label: string; hint: string }[] = [
-  { id: "student", label: "Student / fresher", hint: "Education and projects lead" },
-  { id: "early", label: "Early career", hint: "Up to 3 years" },
-  { id: "experienced", label: "Experienced", hint: "3–10 years" },
-  { id: "senior", label: "Senior / leader", hint: "10+ years or managing teams" },
-  { id: "changer", label: "Changing careers", hint: "Transferable skills first" },
+// Two choices only: they decide whether education/projects or work experience goes first.
+// Seniority is read from the job titles instead of being asked (see `stage` in Wizard).
+const STAGES: { id: "student" | "experienced"; label: string; hint: string; icon: typeof GraduationCap }[] = [
+  { id: "student", label: "Fresher / student", hint: "Little or no work experience yet. Your education and projects go first.", icon: GraduationCap },
+  { id: "experienced", label: "Experienced", hint: "You've had at least one job. Your work experience goes first.", icon: Briefcase },
 ];
 
 const STEPS = [
@@ -73,21 +72,28 @@ const STEPS = [
   { id: "review", label: "Review", icon: Rocket },
 ] as const;
 
-function presetFor(stage: CareerStage, role: string) {
+// Most specific first: "Full Stack Java Developer" is full-stack, not backend or generic software.
+const ROLE_PRESETS: [string, RegExp][] = [
+  ["fullstack", /full.?stack/],
+  ["backend", /backend|api|\.net|java|node/],
+  ["frontend", /front.?end|react|angular|ui developer/],
+  ["data-analyst", /data analyst|business analyst|bi /],
+  ["ml", /machine learning|ml |ai engineer|data scien/],
+  ["cloud", /cloud|devops|sre|platform/],
+  ["security", /security|soc|penetration|cyber/],
+  ["database", /database|dba/],
+  ["manager", /manager|head of|lead/],
+  ["software", /software|developer|engineer|programmer/],
+];
+
+function presetForRole(role: string) {
   const r = role.toLowerCase();
-  const byRole = PRESETS.find(
-    (p) =>
-      (p.id === "backend" && /backend|api|\.net|java|node/.test(r)) ||
-      (p.id === "frontend" && /front.?end|react|angular|ui developer/.test(r)) ||
-      (p.id === "fullstack" && /full.?stack/.test(r)) ||
-      (p.id === "data-analyst" && /data analyst|business analyst|bi /.test(r)) ||
-      (p.id === "ml" && /machine learning|ml |ai engineer|data scien/.test(r)) ||
-      (p.id === "cloud" && /cloud|devops|sre|platform/.test(r)) ||
-      (p.id === "security" && /security|soc|penetration|cyber/.test(r)) ||
-      (p.id === "database" && /database|dba/.test(r)) ||
-      (p.id === "manager" && /manager|head of|lead/.test(r)) ||
-      (p.id === "software" && /software|developer|engineer|programmer/.test(r)),
-  );
+  const hit = ROLE_PRESETS.find(([, re]) => re.test(r));
+  return hit ? PRESETS.find((p) => p.id === hit[0]) : undefined;
+}
+
+function presetFor(stage: CareerStage, role: string) {
+  const byRole = presetForRole(role);
   if (stage === "student") return PRESETS.find((p) => p.id === "fresher")!;
   if (stage === "changer") return PRESETS.find((p) => p.id === "career-change")!;
   if (stage === "senior" && !byRole) return PRESETS.find((p) => p.id === "senior")!;
@@ -107,6 +113,17 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [name, setName] = useState("My resume");
+  const stepsRef = useRef<HTMLOListElement>(null);
+  const stepsScrolled = useRef(false);
+  // On narrow screens the step row scrolls sideways; keep the current step centred in it.
+  // The first scroll (a restored draft) jumps, since a smooth scroll during page load gets cut off.
+  useEffect(() => {
+    const ol = stepsRef.current;
+    const li = ol?.children[step] as HTMLElement | undefined;
+    if (!loaded || !ol || !li) return;
+    ol.scrollTo({ left: li.offsetLeft - (ol.clientWidth - li.clientWidth) / 2, behavior: stepsScrolled.current ? "smooth" : "instant" });
+    stepsScrolled.current = true;
+  }, [step, loaded]);
 
   // Restore an unfinished draft from this browser.
   useEffect(() => {
@@ -119,7 +136,8 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
         const owner = (saved.owner ?? parsed.data?.contact.email ?? "").toLowerCase();
         const mine = !account || !owner || owner === account.email.toLowerCase();
         if (parsed.success && mine) {
-          setDraft({ ...freshDraft(), ...saved, data: parsed.data });
+          // Older drafts may hold one of the removed stages (early, senior, changer).
+          setDraft({ ...freshDraft(), ...saved, stage: saved.stage === "student" ? "student" : "experienced", data: parsed.data });
           setStep(Math.min(saved.step ?? 0, STEPS.length - 1));
         }
       }
@@ -150,7 +168,9 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
   }, [draft, step, loaded]);
 
   const d = draft.data;
-  const preset = presetFor(draft.stage, draft.targetRole);
+  // An experienced user whose job titles show leadership gets the senior layout and summary line.
+  const stage: CareerStage = draft.stage === "experienced" && d.experience.some((e) => /lead|manag|head|director|principal/i.test(e.title)) ? "senior" : draft.stage;
+  const preset = presetFor(stage, draft.targetRole);
   const template = draft.template ?? preset.template;
   const settings = useMemo(
     () =>
@@ -176,7 +196,7 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
 
   // The summary step comes before Experience, so the auto-draft keeps following the later steps
   // (experience, skills) until the user writes their own or turns the summary off.
-  const autoSummary = useMemo(() => composeSummary(d, { targetRole: draft.targetRole, stage: draft.stage }), [d, draft.targetRole, draft.stage]);
+  const autoSummary = useMemo(() => composeSummary(d, { targetRole: draft.targetRole, stage }), [d, draft.targetRole, stage]);
   const summaryReached = step >= STEPS.findIndex((s) => s.id === "summary");
   useEffect(() => {
     if (draft.includeSummary && !draft.summaryEdited && summaryReached && autoSummary !== d.summary.text) setData((x) => void (x.summary = { text: autoSummary, origin: "user" }));
@@ -256,6 +276,22 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
   const achievementsIndex = (x: ResumeData) => x.additional.findIndex((a) => a.title.trim().toLowerCase() === "achievements");
   const achievements = d.additional[achievementsIndex(d)];
 
+  // A passed step counts as done only if something was filled in; otherwise it shows as skipped.
+  const filled: Record<(typeof STEPS)[number]["id"], boolean> = {
+    goal: draft.targetRole.trim().length > 1,
+    contact: !!(d.contact.fullName.trim() && d.contact.email.trim()),
+    summary: !draft.includeSummary || !!d.summary.text.trim(),
+    skills: d.skills.some((g) => g.items.length),
+    experience: d.experience.length > 0,
+    projects: d.projects.length > 0,
+    education: d.education.length > 0,
+    certifications: d.certifications.length > 0,
+    achievements: !!achievements?.bullets.some((b) => b.text.trim()),
+    design: true,
+    review: false,
+  };
+  const stepState = (i: number) => (i === step ? "current" : i > step ? "todo" : filled[STEPS[i].id] ? "done" : "skipped");
+
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -270,31 +306,58 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
       </div>
 
       {/* Progress */}
-      <ol className="mb-6 flex gap-1 overflow-x-auto scroll-thin pb-1" aria-label="Steps">
-        {STEPS.map((s, i) => {
-          const Icon = s.icon;
-          const done = i < step;
-          const on = i === step;
-          return (
-            <li key={s.id} className="min-w-0 flex-1">
-              <button
-                onClick={() => (i <= step || canNext ? setStep(i) : undefined)}
-                aria-current={on ? "step" : undefined}
-                className={`flex w-full min-w-24 items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${on ? "bg-brand-600 text-white shadow" : done ? "bg-brand-50 text-brand-700 hover:bg-brand-100" : "bg-white text-slate-500 hover:bg-slate-50"}`}
-              >
-                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${on ? "bg-white/20" : done ? "bg-brand-600 text-white" : "bg-slate-100"}`}>
-                  {done ? <Check className="h-3 w-3" strokeWidth={3} /> : <Icon className="h-3 w-3" />}
-                </span>
-                <span className="truncate">{s.label}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+      <nav
+        className="relative mb-5 overflow-clip rounded-2xl bg-gradient-to-br from-brand-700 via-brand-600 to-violet-600 px-3 pb-3 pt-3.5 text-white shadow-[0_8px_24px_-12px_rgb(79_70_229/0.55)] sm:px-5"
+        aria-label={`Progress: step ${step + 1} of ${STEPS.length}`}
+      >
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-fuchsia-400/20 blur-3xl" aria-hidden />
+
+        <ol ref={stepsRef} className="relative -mx-1 flex overflow-x-auto px-1 pb-1 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {STEPS.map((s, i) => {
+            const Icon = s.icon;
+            const state = stepState(i);
+            const line = i < step - 1 ? "bg-emerald-300" : i === step - 1 ? "bg-gradient-to-r from-emerald-300 to-white" : "bg-white/20";
+            return (
+              <li key={s.id} className="relative min-w-[76px] flex-1">
+                {i < STEPS.length - 1 ? <span aria-hidden className={`absolute left-[calc(50%+22px)] right-[calc(-50%+22px)] top-[16.5px] h-[3px] rounded-full transition-colors ${line}`} /> : null}
+                <button
+                  onClick={() => (i <= step || canNext ? setStep(i) : undefined)}
+                  aria-current={state === "current" ? "step" : undefined}
+                  aria-label={`Step ${i + 1}: ${s.label} (${state === "current" ? "you are here" : state === "done" ? "completed" : state === "skipped" ? "skipped" : "not started"})`}
+                  className="group flex w-full flex-col items-center gap-1 px-1 text-center"
+                >
+                  <span
+                    className={`relative flex h-9 w-9 items-center justify-center rounded-full border-2 transition duration-200 ${
+                      state === "current"
+                        ? "scale-110 border-white bg-white text-brand-700 shadow-[0_0_0_4px_rgb(255_255_255/0.2),0_6px_16px_-4px_rgb(15_23_42/0.4)]"
+                        : state === "done"
+                          ? "border-emerald-300 bg-emerald-400 text-white shadow-[0_4px_12px_-4px_rgb(16_185_129/0.7)] group-hover:scale-105"
+                          : state === "skipped"
+                            ? "border-dashed border-amber-300 bg-amber-300/15 text-amber-200 group-hover:scale-105"
+                            : "border-white/25 bg-white/10 text-white/70 group-hover:border-white/50 group-hover:text-white"
+                    }`}
+                  >
+                    {state === "current" ? <span aria-hidden className="absolute inset-0 animate-ping rounded-full bg-white/30 [animation-duration:2s]" /> : null}
+                    {state === "done" ? <Check className="h-[18px] w-[18px]" strokeWidth={3} /> : state === "skipped" ? <Minus className="h-4 w-4" strokeWidth={3} /> : <Icon className="h-4 w-4" />}
+                  </span>
+                  <span className={`text-[11px] leading-tight ${state === "current" ? "font-bold text-white" : state === "done" ? "font-semibold text-emerald-200" : state === "skipped" ? "font-semibold text-amber-200" : "font-medium text-brand-100/80"}`}>
+                    {s.label}
+                  </span>
+                  {state === "current" ? <span className="whitespace-nowrap rounded-full bg-white px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-brand-700 shadow-sm">You&apos;re here</span> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
         <div className={`min-w-0 ${showPreview ? "hidden lg:block" : ""}`}>
-          <div key={S} className="card animate-fade-up space-y-5 p-6">
+          <div
+            key={S}
+            className="relative isolate animate-fade-up space-y-5 overflow-clip rounded-2xl border border-blue-100/80 bg-gradient-to-br from-white via-white to-blue-50/70 p-6 shadow-[0_2px_6px_rgb(15_23_42/0.04),0_0_28px_-6px_rgb(59_130_246/0.18),0_16px_40px_-16px_rgb(79_70_229/0.35)] before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-brand-600 before:via-blue-500 before:to-violet-500 after:pointer-events-none after:absolute after:-bottom-24 after:-right-24 after:-z-10 after:h-64 after:w-64 after:rounded-full after:bg-blue-200/30 after:blur-3xl sm:p-7 [&_.field:focus]:border-blue-500 [&_.field:focus]:ring-blue-100 [&_.field:hover]:border-blue-200 [&_.field]:border-slate-200/90 [&_.field]:shadow-[0_1px_2px_rgb(15_23_42/0.05)] [&_.label]:text-slate-700"
+          >
             {S === "goal" ? (
               <>
                 <StepTitle title="What job are you going for?" sub="This shapes the layout, the section order and which skills we highlight." />
@@ -307,14 +370,28 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
                   } placeholder="e.g. .NET Developer, Data Analyst, Sales Manager" />
                 <fieldset>
                   <legend className="label">Where are you in your career?</legend>
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    {STAGES.map((s) => (
-                      <label key={s.id} className={`cursor-pointer rounded-xl border p-3 text-sm transition ${draft.stage === s.id ? "border-brand-500 bg-brand-50 ring-2 ring-brand-100" : "border-slate-200 hover:border-slate-300"}`}>
-                        <input type="radio" name="stage" className="sr-only" checked={draft.stage === s.id} onChange={() => set((x) => void (x.stage = s.id))} />
-                        <span className="block font-semibold">{s.label}</span>
-                        <span className="text-xs text-slate-500">{s.hint}</span>
-                      </label>
-                    ))}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {STAGES.map(({ id, label, hint, icon: Icon }) => {
+                      const on = draft.stage === id;
+                      return (
+                        <label
+                          key={id}
+                          className={`flex cursor-pointer flex-col rounded-xl border-2 p-3.5 transition duration-200 has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-blue-100 ${
+                            on
+                              ? "border-blue-500 bg-gradient-to-b from-blue-50 to-white shadow-[0_0_0_3px_rgb(59_130_246/0.1),0_10px_24px_-10px_rgb(59_130_246/0.5)]"
+                              : "border-slate-200 bg-white hover:border-blue-300"
+                          }`}
+                        >
+                          <input type="radio" name="stage" className="sr-only" checked={on} onChange={() => set((x) => void (x.stage = id))} />
+                          <span className="flex items-center justify-between">
+                            <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${on ? "bg-gradient-to-br from-blue-500 to-brand-600 text-white shadow-[0_6px_14px_-4px_rgb(59_130_246/0.6)]" : "bg-slate-100 text-slate-500"}`}><Icon className="h-5 w-5" aria-hidden /></span>
+                            <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${on ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300"}`} aria-hidden>{on ? <Check className="h-3 w-3" strokeWidth={4} /> : null}</span>
+                          </span>
+                          <span className={`mt-2.5 block font-semibold ${on ? "text-blue-900" : "text-slate-900"}`}>{label}</span>
+                          <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">{hint}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </fieldset>
                 <div>
@@ -382,10 +459,15 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
                       <DateField label="Start" value={e.startDate} onChange={(v) => setData((x) => void (x.experience[i].startDate = v))} />
                       <DateField label="End" value={e.current ? "" : e.endDate} disabled={e.current} onChange={(v) => setData((x) => void (x.experience[i].endDate = v))} />
                       <label className="mb-1.5 flex items-center gap-1.5 text-sm"><input type="checkbox" checked={e.current} onChange={(ev) => setData((x) => void (x.experience[i].current = ev.target.checked))} /> Current job</label>
-                      <label className="mb-1.5 flex items-center gap-1.5 text-sm"><input type="checkbox" checked={e.employmentType === "Internship"} onChange={(ev) => setData((x) => void (x.experience[i].employmentType = ev.target.checked ? "Internship" : ""))} /> Internship</label>
+                      {draft.stage === "student" || e.employmentType === "Internship" ? (
+                        <label className="mb-1.5 flex items-center gap-1.5 text-sm"><input type="checkbox" checked={e.employmentType === "Internship"} onChange={(ev) => setData((x) => void (x.experience[i].employmentType = ev.target.checked ? "Internship" : ""))} /> Internship</label>
+                      ) : null}
                     </div>
                     <div className="mt-4 space-y-3">
-                      {bulletEditor(e.bullets, (b) => setData((x) => void (x.experience[i].bullets = b)))}
+                      {/* The resume skips a role with neither title nor company, so say why its bullets aren't showing. */}
+                      {e.bullets.length && !e.title.trim() && !e.company.trim() ? (
+                        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">Add a job title or company above. Until then, this role and its bullets don&apos;t appear on your resume.</p>
+                      ) : null}
                       <BulletBuilder
                         current={e.current}
                         context={`${e.title} at ${e.company}`}
@@ -393,6 +475,7 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
                         style={settings.writingStyle}
                         onAdd={(text, ai) => setData((x) => void x.experience[i].bullets.push({ id: newId("b"), text, origin: ai ? "ai" : "user", ...(ai ? { sourceText: ai.sourceText } : {}) }))}
                       />
+                      {bulletEditor(e.bullets, (b) => setData((x) => void (x.experience[i].bullets = b)))}
                     </div>
                   </div>
                 ))}
@@ -436,13 +519,6 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
                       <DateField label="Until (optional)" value={p.endDate} onChange={(v) => setData((x) => void (x.projects[i].endDate = v))} />
                     </div>
                     <div className="mt-4 space-y-3">
-                      {bulletEditor(p.bullets, (b) => setData((x) => void (x.projects[i].bullets = b)))}
-                      <button
-                        className="btn-ghost h-8 px-2 text-xs text-brand-700"
-                        onClick={() => setData((x) => void x.projects[i].bullets.push({ id: newId("b"), text: "", origin: "user" }))}
-                      >
-                        <Plus className="h-3.5 w-3.5" aria-hidden /> Add a bullet point
-                      </button>
                       <BulletBuilder
                         current={false}
                         context={`Project: ${p.name}${p.technologies.length ? ` (${p.technologies.join(", ")})` : ""}`}
@@ -451,6 +527,7 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
                         purposeLabel="Problem it solved"
                         onAdd={(text, ai) => setData((x) => void x.projects[i].bullets.push({ id: newId("b"), text, origin: ai ? "ai" : "user", ...(ai ? { sourceText: ai.sourceText } : {}) }))}
                       />
+                      {bulletEditor(p.bullets, (b) => setData((x) => void (x.projects[i].bullets = b)))}
                     </div>
                   </div>
                 ))}
@@ -537,7 +614,8 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
                 data={d}
                 setData={setData}
                 addSkill={addSkill}
-                categories={preset.skillCategories}
+                // Groups follow the target role even for freshers (a fresher React developer still wants "Frontend").
+                categories={presetForRole(draft.targetRole)?.skillCategories ?? preset.skillCategories}
                 jobSkills={jobSkills}
                 title={settings.skillsTitle}
                 onTitle={(t) => set((x) => void (x.skillsTitle = t))}
@@ -650,7 +728,7 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
             ) : null}
 
             {/* Navigation */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+            <div className="flex items-center justify-between border-t border-blue-100/70 pt-4">
               <button className="btn-ghost" disabled={step === 0} onClick={() => setStep((s) => s - 1)}><ArrowLeft className="h-4 w-4" aria-hidden /> Back</button>
               <div className="flex items-center gap-2">
                 {step < STEPS.length - 1 && ["summary", "skills", "experience", "projects", "education", "certifications", "achievements"].includes(S) ? (
@@ -690,15 +768,56 @@ export function Wizard({ aiAvailable, account }: { aiAvailable: boolean; account
 
 function StepTitle({ title, sub }: { title: string; sub: string }) {
   return (
-    <div>
-      <h2 className="text-xl font-extrabold">{title}</h2>
-      <p className="mt-1 text-sm text-slate-600">{sub}</p>
+    <div className="flex gap-3">
+      <span aria-hidden className="w-1 shrink-0 rounded-full bg-gradient-to-b from-brand-500 to-violet-500" />
+      <div>
+        <h2 className="text-xl font-extrabold text-slate-900">{title}</h2>
+        <p className="mt-1 text-sm text-slate-600">{sub}</p>
+      </div>
     </div>
   );
 }
 
 /** Group names offered in the skills step, on top of the preset's own; any other name can be typed. */
 const COMMON_SKILL_GROUPS = ["Languages", "Backend & Frameworks", "Frontend", "Databases", "Data & AI", "Cloud & DevOps", "Testing", "Tools", "Soft skills"];
+
+/** Example skills shown inside each group's box, keyed by lower-case group name. */
+const SKILL_EXAMPLES: Record<string, string> = {
+  languages: "Java, Python, JavaScript",
+  frameworks: "Spring Boot, React, Node.js",
+  frontend: "React, HTML, CSS, Tailwind",
+  backend: "Node.js, Express, Spring Boot, REST APIs",
+  "backend & frameworks": "Spring Boot, Node.js, Django",
+  databases: "MySQL, PostgreSQL, MongoDB",
+  "cloud & devops": "AWS, Docker, GitHub Actions",
+  tools: "Git, VS Code, Postman, Jira",
+  messaging: "Kafka, RabbitMQ",
+  styling: "CSS, Tailwind, Sass",
+  testing: "Jest, Playwright, JUnit",
+  technical: "C, Java, Python, SQL",
+  "core skills": "Sales, Negotiation, Customer service",
+  software: "MS Excel, Tally, SAP",
+  leadership: "Team leadership, Hiring, Mentoring",
+  domain: "Banking, Healthcare, E-commerce",
+  delivery: "Agile, Scrum, Roadmapping",
+  cloud: "AWS, Azure, Google Cloud",
+  containers: "Docker, Kubernetes",
+  iac: "Terraform, CloudFormation",
+  "ci/cd": "GitHub Actions, Jenkins",
+  observability: "Prometheus, Grafana, ELK",
+  analysis: "Statistics, A/B testing, Forecasting",
+  "bi & visualisation": "Power BI, Tableau, Excel",
+  data: "Pandas, Spark, SQL",
+  "data & ai": "Pandas, scikit-learn, LLMs",
+  "ml & ai": "Deep learning, NLP, LLMs",
+  mlops: "MLflow, Docker, Airflow",
+  "performance & tuning": "Indexing, Query tuning",
+  "security domains": "Network security, VAPT, SOC",
+  "frameworks & compliance": "ISO 27001, NIST",
+  "soft skills": "Communication, Teamwork, Problem solving",
+  teaching: "Curriculum design, Lecturing",
+  research: "Data collection, SPSS, Literature review",
+};
 
 function SkillsStep({
   data,
@@ -723,6 +842,7 @@ function SkillsStep({
   const have = new Set(data.skills.flatMap((g) => g.items.map((i) => i.toLowerCase())));
   const jobMissing = jobSkills.filter((s) => !have.has(s.name.toLowerCase()));
   const groupNames = [...new Set([...data.skills.map((g) => g.category).filter(Boolean), ...categories, ...COMMON_SKILL_GROUPS])];
+  const example = SKILL_EXAMPLES[group.trim().toLowerCase()] ?? "Java, Python, TypeScript";
   // Each line is either "Group: a, b, c" (pasted from an existing resume) or just "a, b, c" for the chosen group.
   const add = () => {
     for (const line of input.split(/\n+/)) {
@@ -791,14 +911,35 @@ function SkillsStep({
           add();
         }}
       >
+        <div>
+          <p className="label">Suggested groups for your role (click one, or type your own below)</p>
+          <div className="flex flex-wrap gap-1.5">
+            {categories.map((c) => {
+              const on = group.trim().toLowerCase() === c.toLowerCase();
+              const count = data.skills.find((g) => g.category.toLowerCase() === c.toLowerCase())?.items.length ?? 0;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setGroup(c)}
+                  className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition ${on ? "border-brand-500 bg-brand-600 text-white shadow-sm" : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:text-brand-700"}`}
+                >
+                  {count ? <Check className="h-3 w-3" strokeWidth={3} aria-hidden /> : null}
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div className="flex flex-wrap items-end gap-2">
           <div className="w-full sm:w-56">
-            <label className="label" htmlFor="wz-group">Group name (type your own or pick one)</label>
+            <label className="label" htmlFor="wz-group">Group name</label>
             <input id="wz-group" className="field" list="wz-group-list" value={group} onChange={(e) => setGroup(e.target.value)} placeholder="e.g. Languages" />
             <datalist id="wz-group-list">{groupNames.map((g) => <option key={g} value={g} />)}</datalist>
           </div>
           <div className="min-w-48 flex-1">
-            <label className="label" htmlFor="wz-skill">Skills in this group (comma-separated)</label>
+            <label className="label" htmlFor="wz-skill">Skills (comma-separated)</label>
             <textarea
               id="wz-skill"
               rows={input.includes("\n") ? 4 : 1}
@@ -812,7 +953,7 @@ function SkillsStep({
                   if (input.trim()) add();
                 }
               }}
-              placeholder="e.g. Java, Python, TypeScript"
+              placeholder={`e.g. ${example}`}
             />
           </div>
           <button className="btn-primary" disabled={!input.trim()}><Plus className="h-4 w-4" aria-hidden /> Add</button>

@@ -26,7 +26,7 @@ export function AdminLogin() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-sm flex-col justify-center px-4 py-10">
+    <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-sm flex-col justify-center px-4 py-10">
       <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-brand-700 text-white shadow-md"><ShieldCheck className="h-6 w-6" aria-hidden /></span>
       <h1 className="mt-4 text-2xl font-extrabold">Admin login</h1>
       <p className="mt-1 text-sm text-slate-600">For the site owner. Sign in to open the admin dashboard.</p>

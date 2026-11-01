@@ -1,17 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Lightbulb, Plus, Sparkles, WandSparkles } from "lucide-react";
-import { INTENTS, composeBullet, notesToBullet } from "@resume/shared/compose";
-import { analyzeBullet } from "@resume/shared/analysis/bullets";
+import { Plus, Sparkles } from "lucide-react";
+import { notesToBullet } from "@resume/shared/compose";
 import type { ResumeSettings } from "@resume/shared/schema/resume";
 import { api, ApiError } from "@/lib/api-client";
+import { BULLETS_FROM_NOTES } from "@/lib/features";
 import { Notice, Spinner } from "../ui";
 
+/** Tidies a typed bullet without changing its words: no leading "•"/"-", capital first letter, full stop. */
+function tidy(text: string): string {
+  const s = text.trim().replace(/^([-•*▪●◦]|\d+[.)])\s*/, "").replace(/\s+/g, " ");
+  if (!s) return "";
+  const capped = s[0].toUpperCase() + s.slice(1);
+  return /[.!?]$/.test(capped) ? capped : `${capped}.`;
+}
+
 /**
- * Helps the user write one strong bullet at a time from structured answers (what, how,
- * result), or turns free-form notes into one bullet (with AI when configured). Nothing is
- * added beyond what the user typed.
+ * One line to add a bullet in the user's own words (shown in the list below it, where it can be edited or
+ * removed), or, when BULLETS_FROM_NOTES is on, free-form notes turned into one bullet (with AI when configured).
+ * Nothing is added beyond what the user typed.
  */
 export function BulletBuilder({
   current,
@@ -28,27 +36,26 @@ export function BulletBuilder({
   onAdd: (text: string, ai?: { sourceText: string }) => void;
   purposeLabel?: string;
 }) {
-  const [mode, setMode] = useState<"guided" | "notes">("guided");
-  const [intent, setIntent] = useState(INTENTS[0].id);
-  const [verb, setVerb] = useState(INTENTS[0].verbs[0]);
-  const [what, setWhat] = useState("");
-  const [how, setHow] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [result, setResult] = useState("");
+  const [mode, setMode] = useState<"typed" | "notes">("typed");
+  const [text, setText] = useState("");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<{ text: string; warnings: string[]; ai: boolean }[]>([]);
   const [questions, setQuestions] = useState<string[]>([]);
+  const what = purposeLabel ? "project" : "role";
 
-  const preview = composeBullet({ verb, what, how, result, purpose }, current);
-  const a = preview ? analyzeBullet(preview) : null;
-  const verbs = INTENTS.find((i) => i.id === intent)!.verbs;
+  const add = () => {
+    const bullet = tidy(text);
+    if (!bullet) return;
+    onAdd(bullet);
+    setText("");
+  };
 
   // Whatever is pasted becomes one bullet, never several.
   const basicDraft = () => {
-    const text = notesToBullet(notes, current);
-    return text ? [{ text, warnings: [], ai: false }] : [];
+    const t = notesToBullet(notes, current);
+    return t ? [{ text: t, warnings: [], ai: false }] : [];
   };
 
   async function fromNotes() {
@@ -74,92 +81,39 @@ export function BulletBuilder({
   }
 
   return (
-    <div className="rounded-xl border border-brand-100 bg-gradient-to-br from-brand-50/60 to-white p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-sm font-bold text-brand-800"><WandSparkles className="h-4 w-4" aria-hidden /> Write a bullet point</p>
-        <div className="flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-semibold" role="tablist">
-          {(["guided", "notes"] as const).map((m) => (
-            <button key={m} role="tab" aria-selected={mode === m} onClick={() => setMode(m)} className={`rounded-md px-2.5 py-1 ${mode === m ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
-              {m === "guided" ? "Step by step" : "From my notes"}
-            </button>
-          ))}
-        </div>
+    <div className="space-y-2">
+      <div className="flex items-end justify-between gap-2">
+        <p className="text-xs leading-relaxed text-slate-600">
+          <span className="font-semibold text-slate-800">Bullet points:</span> one thing you did in this {what} per line. For example:{" "}
+          <span className="italic text-slate-700">“Built an order-tracking API using Node.js, used by 25,000 customers.”</span>
+        </p>
+        {BULLETS_FROM_NOTES ? (
+          <button type="button" className="shrink-0 whitespace-nowrap text-xs font-semibold text-brand-700 hover:underline" onClick={() => setMode((m) => (m === "typed" ? "notes" : "typed"))}>
+            {mode === "typed" ? "From my notes" : "Type it myself"}
+          </button>
+        ) : null}
       </div>
 
-      {mode === "guided" ? (
-        <div className="space-y-3">
-          <div>
-            <p className="label">What kind of thing did you do?</p>
-            <div className="flex flex-wrap gap-1.5">
-              {INTENTS.map((i) => (
-                <button
-                  key={i.id}
-                  onClick={() => {
-                    setIntent(i.id);
-                    setVerb(i.verbs[0]);
-                  }}
-                  className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${intent === i.id ? "border-brand-500 bg-brand-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
-                >
-                  {i.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-[150px_1fr]">
-            <div>
-              <label className="label" htmlFor="bb-verb">Starting verb</label>
-              <select id="bb-verb" className="field" value={verb} onChange={(e) => setVerb(e.target.value)}>
-                {verbs.map((v) => <option key={v}>{v}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label" htmlFor="bb-what">What exactly? <span className="font-normal text-slate-400">(required)</span></label>
-              <input id="bb-what" className="field" value={what} onChange={(e) => setWhat(e.target.value)} placeholder="e.g. an order-tracking API for the mobile app" />
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {purposeLabel ? (
-              <div>
-                <label className="label" htmlFor="bb-purpose">{purposeLabel}</label>
-                <input id="bb-purpose" className="field" value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="e.g. let customers track deliveries" />
-              </div>
-            ) : null}
-            <div>
-              <label className="label" htmlFor="bb-how">How? Tools or method</label>
-              <input id="bb-how" className="field" value={how} onChange={(e) => setHow(e.target.value)} placeholder="e.g. Node.js and PostgreSQL" />
-            </div>
-            <div className={purposeLabel ? "sm:col-span-2" : ""}>
-              <label className="label" htmlFor="bb-result">Result or scale <span className="font-normal text-slate-400">(only real numbers)</span></label>
-              <input id="bb-result" className="field" value={result} onChange={(e) => setResult(e.target.value)} placeholder="e.g. used by 25,000 customers a month · cutting load time from 4s to 1.5s" />
-            </div>
-          </div>
-          {preview ? (
-            <div className="rounded-lg border border-slate-200 bg-white p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Preview</p>
-              <p className="mt-0.5 text-sm text-slate-900">{preview}</p>
-              {a && !a.hasMetric ? (
-                <p className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-800">
-                  <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> Have a real number (how many, how much, how fast)? Add it under Result. It makes the biggest difference.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-          <button
-            className="btn-primary"
-            disabled={!preview}
-            onClick={() => {
-              onAdd(preview);
-              setWhat("");
-              setHow("");
-              setResult("");
-              setPurpose("");
+      {mode === "typed" ? (
+        <div className="flex gap-2">
+          <input
+            className="field min-w-0 flex-1"
+            aria-label={`New bullet point for this ${what}`}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              add();
             }}
-          >
-            <Plus className="h-4 w-4" aria-hidden /> Add bullet
+            placeholder="Type what you did, then press Add"
+          />
+          <button type="button" className="btn-primary shrink-0" disabled={!text.trim()} onClick={add}>
+            <Plus className="h-4 w-4" aria-hidden /> Add
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 rounded-xl border border-brand-100 bg-brand-50/40 p-3">
           <label className="label" htmlFor="bb-notes">Describe what you did, in your own words</label>
           <textarea
             id="bb-notes"

@@ -9,7 +9,7 @@ import { RecoveryCodeCard } from "./RecoveryCode";
 
 function Shell({ icon: Icon, title, sub, children }: { icon: typeof Mail; title: string; sub: string; children: React.ReactNode }) {
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-sm flex-col justify-center px-4 py-10">
+    <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-sm flex-col justify-center px-4 py-10">
       <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-500 text-white shadow-md"><Icon className="h-6 w-6" aria-hidden /></span>
       <h1 className="mt-4 text-2xl font-extrabold">{title}</h1>
       <p className="mt-1 text-sm text-slate-600">{sub}</p>

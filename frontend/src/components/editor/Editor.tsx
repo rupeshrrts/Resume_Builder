@@ -318,7 +318,7 @@ export function Editor({ resume, parentName, jobs: initialJobs, ai }: EditorProp
 
   return (
     <EditorContext.Provider value={ctx}>
-      <div className="sticky top-14 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
+      <div className="sticky top-16 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-2 px-4 py-2">
           <Link href="/dashboard" className="btn-ghost h-9 w-9 p-0" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
           <label className="sr-only" htmlFor="resume-name">Resume name</label>
@@ -419,7 +419,7 @@ export function Editor({ resume, parentName, jobs: initialJobs, ai }: EditorProp
 
       {/* The preview/checks panel gets a little over half the width so the page is readable at a glance. */}
       <div className="mx-auto grid max-w-[1600px] grid-cols-[minmax(0,1fr)] gap-5 px-4 py-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] xl:grid-cols-[190px_minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <nav className="sticky top-[124px] hidden self-start xl:block" aria-label="Resume sections">
+        <nav className="sticky top-[132px] hidden self-start xl:block" aria-label="Resume sections">
           <div className="card p-4">
             <div className="flex items-center gap-3">
               <ScoreRing score={report.overall} size={52} label="Overall resume score" />
@@ -472,7 +472,7 @@ export function Editor({ resume, parentName, jobs: initialJobs, ai }: EditorProp
         </div>
 
         <aside
-          className={`min-w-0 ${mobileView === "panel" ? "" : "hidden lg:block"} scroll-thin lg:sticky lg:top-[124px] lg:max-h-[calc(100vh-136px)] lg:self-start lg:overflow-y-auto lg:rounded-2xl`}
+          className={`min-w-0 ${mobileView === "panel" ? "" : "hidden lg:block"} scroll-thin lg:sticky lg:top-[132px] lg:max-h-[calc(100vh-144px)] lg:self-start lg:overflow-y-auto lg:rounded-2xl`}
           aria-label="Preview and checks"
         >
           <div className="card">

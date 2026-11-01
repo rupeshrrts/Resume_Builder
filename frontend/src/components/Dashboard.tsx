@@ -56,6 +56,7 @@ export function Dashboard({
   const [deleting, setDeleting] = useState<ResumeSummary | null>(null);
   const [addingJob, setAddingJob] = useState(false);
   const [filter, setFilter] = useState<JobStatus | "all">("all");
+  const [startWith, setStartWith] = useState<"wizard" | "import" | "blank">("wizard");
   const [busy, setBusy] = useState(false);
 
   const run = async (fn: () => Promise<void>) => {
@@ -228,34 +229,58 @@ export function Dashboard({
           <section aria-labelledby="resumes-h">
             <h2 id="resumes-h" className="mb-3 text-lg font-bold">Resumes</h2>
             {resumes.length === 0 ? (
-              <div className="card px-5 py-8 sm:px-8">
-                <h3 className="text-center text-lg font-bold">How do you want to start your resume?</h3>
-                <p className="mx-auto mt-1 max-w-md text-center text-sm text-slate-600">Pick one. You can change everything later.</p>
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  {[
-                    { href: "/wizard", icon: Sparkles, title: "Create step by step", text: "Answer simple questions. We turn them into a clean, ATS-friendly resume.", best: true, soon: false },
-                    { href: "/import", icon: CloudUpload, title: "Upload & analyse with AI", text: "Have one already? Upload the PDF or Word file. AI checks it and shows what to fix.", best: false, soon: !UPLOAD_AND_AI_ANALYSIS },
-                    { href: null, icon: Plus, title: "Start from blank", text: "For experienced users: fill in each section yourself in the editor.", best: false, soon: false },
-                  ].map(({ href, icon: Icon, title, text, best, soon }) => {
-                    const body = (
-                      <>
-                        <span className="flex items-center justify-between">
-                          <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${best ? "bg-gradient-to-br from-brand-500 to-violet-500 text-white" : "bg-slate-100 text-slate-600"}`}><Icon className="h-5 w-5" aria-hidden /></span>
-                          {best ? <Badge tone="blue">Recommended</Badge> : soon ? <Badge tone="violet">Coming soon</Badge> : null}
-                        </span>
-                        <span className="mt-3 block font-semibold text-slate-900">{title}</span>
-                        <span className="mt-1 block text-xs leading-relaxed text-slate-600">{text}</span>
-                      </>
-                    );
-                    if (soon) return <div key={title} aria-disabled="true" className="block h-full cursor-not-allowed rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-left opacity-75">{body}</div>;
-                    const cls = `block h-full rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${best ? "border-brand-300 bg-brand-50/50 ring-1 ring-brand-100" : "border-slate-200 bg-white hover:border-slate-300"}`;
-                    return href ? (
-                      <Link key={title} href={href} className={cls}>{body}</Link>
-                    ) : (
-                      <button key={title} type="button" className={cls} onClick={() => setCreating(true)}>{body}</button>
-                    );
-                  })}
-                </div>
+              <div className="card card-glow px-5 py-8 sm:px-8">
+                <h3 className="text-center text-xl font-bold">How do you want to start your resume?</h3>
+                <p className="mx-auto mt-1 max-w-md text-center text-sm text-slate-600">Pick one option, then press <b className="font-semibold text-slate-800">Start</b>. You can change everything later.</p>
+                {(() => {
+                  const options = [
+                    { id: "wizard" as const, icon: Sparkles, title: "Create step by step", text: "Answer simple questions. We turn them into a clean, ATS-friendly resume.", best: true, soon: false },
+                    { id: "import" as const, icon: CloudUpload, title: "Upload & analyse with AI", text: "Have one already? Upload the PDF or Word file. AI checks it and shows what to fix.", best: false, soon: !UPLOAD_AND_AI_ANALYSIS },
+                    { id: "blank" as const, icon: Plus, title: "Start from blank", text: "For experienced users: fill in each section yourself in the editor.", best: false, soon: false },
+                  ];
+                  const chosen = options.find((o) => o.id === startWith)!;
+                  const start = () => (startWith === "blank" ? setCreating(true) : router.push(`/${startWith}`));
+                  return (
+                    <>
+                      <div role="radiogroup" aria-label="How to start your resume" className="mt-7 grid gap-4 sm:grid-cols-3">
+                        {options.map(({ id, icon: Icon, title, text, best, soon }) => {
+                          const on = startWith === id;
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              role="radio"
+                              aria-checked={on}
+                              disabled={soon}
+                              onClick={() => setStartWith(id)}
+                              onDoubleClick={start}
+                              className={`relative flex h-full flex-col rounded-2xl border-2 p-5 pt-6 text-left transition duration-200 ${
+                                soon
+                                  ? "cursor-not-allowed border-dashed border-slate-200 bg-slate-50/60 opacity-70"
+                                  : on
+                                    ? "-translate-y-1 border-blue-500 bg-gradient-to-b from-blue-50 to-white shadow-[0_0_0_4px_rgb(59_130_246/0.12),0_18px_40px_-12px_rgb(59_130_246/0.55)]"
+                                    : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_10px_28px_-14px_rgb(59_130_246/0.45)]"
+                              }`}
+                            >
+                              {best ? <span className="absolute -top-3 left-5 rounded-full bg-gradient-to-r from-blue-600 to-brand-600 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide whitespace-nowrap text-white shadow-md">Recommended</span> : null}
+                              <span className="flex items-center justify-between">
+                                <span className={`flex h-11 w-11 items-center justify-center rounded-xl transition ${on ? "bg-gradient-to-br from-blue-500 to-brand-600 text-white shadow-[0_6px_16px_-4px_rgb(59_130_246/0.6)]" : "bg-slate-100 text-slate-600"}`}><Icon className="h-5 w-5" aria-hidden /></span>
+                                {soon ? <Badge tone="violet">Coming soon</Badge> : on ? <CheckCircle2 className="h-6 w-6 text-blue-600" aria-hidden /> : <Circle className="h-6 w-6 text-slate-300" aria-hidden />}
+                              </span>
+                              <span className={`mt-4 block font-semibold ${on ? "text-blue-900" : "text-slate-900"}`}>{title}</span>
+                              <span className="mt-1 block text-xs leading-relaxed text-slate-600">{text}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-7 flex justify-center">
+                        <button type="button" onClick={start} className="btn-primary h-12 px-8 text-base shadow-[0_12px_30px_-8px_rgb(59_130_246/0.6)]">
+                          Start: {chosen.title} <ArrowRight className="h-4 w-4" aria-hidden />
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <ul className="grid gap-4 xl:grid-cols-2">
@@ -265,7 +290,8 @@ export function Dashboard({
             )}
           </section>
 
-          <section aria-labelledby="jobs-h" className="card p-5">
+          {/* Shown only once a job is saved; until then the Applications page and "Your next steps" lead there. */}
+          {jobs.length ? <section aria-labelledby="jobs-h" className="card card-glow p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 id="jobs-h" className="text-lg font-bold">Applications</h2>
               <div className="flex gap-2">
@@ -273,7 +299,7 @@ export function Dashboard({
                 <button className="btn-secondary h-8 text-xs" onClick={() => setAddingJob(true)}><Plus className="h-3.5 w-3.5" aria-hidden /> Add job</button>
               </div>
             </div>
-            {jobs.length ? <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Filter by status">
+            <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Filter by status">
               {[{ id: "all" as const, label: "All", tone: "" }, ...STATUSES].map((s) => {
                 const count = s.id === "all" ? jobs.length : jobs.filter((j) => j.status === s.id).length;
                 const on = filter === s.id;
@@ -289,11 +315,9 @@ export function Dashboard({
                   </button>
                 );
               })}
-            </div> : null}
+            </div>
             {shownJobs.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-500">
-                {jobs.length ? "No jobs with this status." : "Save job descriptions here to match them against your resume and track your applications."}
-              </p>
+              <p className="py-6 text-center text-sm text-slate-500">No jobs with this status.</p>
             ) : (
               <ul className="mt-4 divide-y divide-slate-100">
                 {shownJobs.map((j) => {
@@ -354,11 +378,11 @@ export function Dashboard({
                 })}
               </ul>
             )}
-          </section>
+          </section> : null}
         </div>
 
         <aside className="space-y-4" aria-label="Your progress">
-          <section className="card p-5 text-sm">
+          <section className="card card-glow p-5 text-sm">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-bold">Your next steps</h2>
               <span className="text-xs font-semibold text-slate-500">{doneCount}/{steps.length} done</span>
